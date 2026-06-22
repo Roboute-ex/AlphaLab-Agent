@@ -1,4 +1,4 @@
-"""Run the deterministic AlphaLab Agent v0.1 research workflow."""
+"""Run the deterministic AlphaLab Agent v0.6 research workflow."""
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ def main() -> None:
     config = ResearchConfig(output_dir=ROOT / "artifacts", report_name="report.md")
     artifacts = run_v0_pipeline(config)
     metrics = artifacts.metrics
-    print("AlphaLab Agent v0.1 complete")
+    print("AlphaLab Agent v0.6 complete")
     print(f"Reviewer status: {summarize_review(artifacts.review_checks)}")
     print(f"Periods: {metrics['periods']}")
     print(f"Total return: {metrics['total_return']:.2%}")

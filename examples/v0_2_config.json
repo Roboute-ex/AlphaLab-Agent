@@ -1,0 +1,23 @@
+{
+  "seed": 42,
+  "start_date": "2020-01-01",
+  "n_days": 504,
+  "n_symbols": 50,
+  "forward_days": 5,
+  "rebalance_every": 5,
+  "top_k": 5,
+  "transaction_cost_bps": 5.0,
+  "annualization": 252,
+  "output_dir": "artifacts",
+  "report_name": "report.md",
+  "html_report_name": "report.html",
+  "quantiles": 5,
+  "generate_html": true,
+  "generate_charts": true,
+  "factor_weights": {
+    "momentum_20": 0.35,
+    "reversal_5": 0.25,
+    "low_volatility_20": 0.25,
+    "volume_trend_20": 0.15
+  }
+}

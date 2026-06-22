@@ -15,6 +15,7 @@ venv/
 artifacts/*.md
 artifacts/*.html
 artifacts/*.png
+artifacts/*.json
 artifacts/tmp*/
 artifacts/test*/
 reports/*.md

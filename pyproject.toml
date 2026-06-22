@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "alphalab-agent"
-version = "0.1"
+version = "0.6"
 description = "A deterministic local multi-factor research workflow for quant and agent internship demos."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -22,6 +22,9 @@ viz = [
 ]
 app = [
   "streamlit>=1.30",
+]
+data = [
+  "yfinance>=0.2",
 ]
 storage = [
   "duckdb>=0.9",

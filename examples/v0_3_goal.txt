@@ -1,0 +1,1 @@
+Run a top-5 synthetic multi-factor research workflow with 5 day labels and 5 bps cost.
