@@ -27,6 +27,8 @@ def build_demo_config(
     forward_days: int = 5,
     rebalance_every: int = 5,
     transaction_cost_bps: float = 5.0,
+    backtest_mode: str = "execution",
+    weighting_mode: str = "equal_weight",
     output_dir: str | Path = "artifacts",
 ) -> ResearchConfig:
     """Build a deterministic config from UI values."""
@@ -39,6 +41,8 @@ def build_demo_config(
         forward_days=forward_days,
         rebalance_every=rebalance_every,
         transaction_cost_bps=transaction_cost_bps,
+        backtest_mode=backtest_mode,
+        weighting_mode=weighting_mode,
         output_dir=Path(output_dir),
     )
 
@@ -66,6 +70,12 @@ def main() -> None:
         forward_days = st.slider("Forward label days", min_value=1, max_value=20, value=5)
         rebalance_every = st.slider("Rebalance interval", min_value=1, max_value=20, value=5)
         transaction_cost_bps = st.number_input("Transaction cost bps", min_value=0.0, value=5.0, step=1.0)
+        backtest_mode = st.selectbox("Backtest mode", ["execution", "label_based"], index=0)
+        weighting_mode = st.selectbox(
+            "Walk-forward weighting",
+            ["equal_weight", "config_weight", "ic_weight_train_only", "rankic_weight_train_only"],
+            index=0,
+        )
         goal = st.text_area("Research goal", value=DEFAULT_GOAL, height=100)
         run_clicked = st.button("Run Deterministic Workflow", type="primary")
 
@@ -81,6 +91,8 @@ def main() -> None:
         forward_days=int(forward_days),
         rebalance_every=int(rebalance_every),
         transaction_cost_bps=float(transaction_cost_bps),
+        backtest_mode=str(backtest_mode),
+        weighting_mode=str(weighting_mode),
     )
 
     with st.spinner("Running deterministic research workflow..."):
@@ -91,8 +103,8 @@ def main() -> None:
 
     _render_metrics(st, metrics, review_status)
 
-    tab_report, tab_analysis, tab_validation, tab_positions, tab_logs = st.tabs(
-        ["Report", "Factor Analysis", "Validation", "Positions", "Workflow Logs"]
+    tab_report, tab_analysis, tab_validation, tab_benchmark, tab_positions, tab_logs = st.tabs(
+        ["Report", "Factor Analysis", "Validation", "Benchmark", "Positions", "Workflow Logs"]
     )
     with tab_report:
         st.markdown(artifacts.report_markdown)
@@ -104,6 +116,8 @@ def main() -> None:
     with tab_analysis:
         st.subheader("Factor IC / RankIC")
         st.dataframe(artifacts.factor_ic, use_container_width=True)
+        st.subheader("Factor Diagnostics")
+        st.dataframe(artifacts.factor_diagnostics, use_container_width=True)
         st.subheader("Quantile Returns")
         st.dataframe(artifacts.quantile_returns, use_container_width=True)
         if "equity_curve" in artifacts.chart_paths:
@@ -114,6 +128,16 @@ def main() -> None:
         st.dataframe(artifacts.walk_forward_validation, use_container_width=True)
         st.subheader("Parameter Sensitivity")
         st.dataframe(artifacts.sensitivity_analysis, use_container_width=True)
+        st.subheader("Walk-forward Factor Weights")
+        st.dataframe(artifacts.walk_forward_weights, use_container_width=True)
+
+    with tab_benchmark:
+        st.subheader("Benchmark Comparison")
+        st.dataframe(artifacts.benchmark_comparison.comparison_summary, use_container_width=True)
+        st.subheader("Benchmark Metrics")
+        st.dataframe(artifacts.benchmark_comparison.benchmark_metrics, use_container_width=True)
+        if artifacts.manifest_path is not None:
+            st.caption(f"Run manifest: {artifacts.manifest_path}")
 
     with tab_positions:
         st.subheader("Recent Portfolio Returns")

@@ -22,6 +22,9 @@ class ResearchConfig:
     top_k: int = 5
     transaction_cost_bps: float = 5.0
     annualization: int = 252
+    backtest_mode: str = "execution"
+    weighting_mode: str = "equal_weight"
+    benchmark_seed: int = 42
     output_dir: Path = Path("artifacts")
     report_name: str = "report.md"
     html_report_name: str = "report.html"
@@ -32,6 +35,7 @@ class ResearchConfig:
     validation_train_fraction: float = 0.5
     validation_embargo_periods: int | None = None
     sensitivity_top_k_step: int = 2
+    generate_manifest: bool = True
     factor_weights: dict[str, float] = field(
         default_factory=lambda: {
             "momentum_20": 0.35,
@@ -59,6 +63,18 @@ class ResearchConfig:
             raise ValueError("top_k cannot exceed n_symbols.")
         if self.transaction_cost_bps < 0:
             raise ValueError("transaction_cost_bps cannot be negative.")
+        if self.backtest_mode not in {"execution", "label_based"}:
+            raise ValueError("backtest_mode must be one of: execution, label_based.")
+        if self.weighting_mode not in {
+            "equal_weight",
+            "config_weight",
+            "ic_weight_train_only",
+            "rankic_weight_train_only",
+        }:
+            raise ValueError(
+                "weighting_mode must be one of: equal_weight, config_weight, "
+                "ic_weight_train_only, rankic_weight_train_only."
+            )
         if self.quantiles < 2:
             raise ValueError("quantiles must be at least 2.")
         if self.validation_splits < 0:

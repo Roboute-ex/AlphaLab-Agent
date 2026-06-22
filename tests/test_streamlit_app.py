@@ -22,4 +22,6 @@ def test_streamlit_app_config_builder_is_importable_without_streamlit():
     assert config.forward_days == 7
     assert config.rebalance_every == 7
     assert config.transaction_cost_bps == 3.0
+    assert config.backtest_mode == "execution"
+    assert config.weighting_mode == "equal_weight"
     assert config.output_dir == Path("artifacts")

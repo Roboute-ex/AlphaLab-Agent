@@ -1,4 +1,4 @@
-"""Command line interface for AlphaLab Agent v0.6."""
+"""Command line interface for AlphaLab Agent v0.7."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from alphalab_agent.workflow import run_agent_workflow
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="AlphaLab Agent deterministic v0.6 workflow.")
+    parser = argparse.ArgumentParser(description="AlphaLab Agent deterministic v0.7 workflow.")
     parser.add_argument(
         "--demo",
         action="store_true",
@@ -50,6 +50,18 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--start", help="Start date for --data-source yfinance, YYYY-MM-DD.")
     parser.add_argument("--end", help="End date for --data-source yfinance, YYYY-MM-DD.")
     parser.add_argument("--interval", default="1d", help="Interval for --data-source yfinance.")
+    parser.add_argument(
+        "--backtest-mode",
+        choices=["execution", "label_based"],
+        help="Backtest mode. Defaults to execution.",
+    )
+    parser.add_argument(
+        "--weighting-mode",
+        choices=["equal_weight", "config_weight", "ic_weight_train_only", "rankic_weight_train_only"],
+        help="Walk-forward factor weighting mode.",
+    )
+    parser.add_argument("--benchmark-seed", type=int, help="Seed for the random top-k benchmark.")
+    parser.add_argument("--no-manifest", action="store_true", help="Disable artifacts/run_manifest.json output.")
     return parser
 
 
@@ -66,6 +78,17 @@ def main(argv: list[str] | None = None) -> int:
         config = ResearchConfig(**{**config.to_dict(), "output_dir": Path(args.output_dir)})
     else:
         config = ResearchConfig(output_dir=Path(args.output_dir), report_name="report.md")
+    overrides = {}
+    if args.backtest_mode:
+        overrides["backtest_mode"] = args.backtest_mode
+    if args.weighting_mode:
+        overrides["weighting_mode"] = args.weighting_mode
+    if args.benchmark_seed is not None:
+        overrides["benchmark_seed"] = args.benchmark_seed
+    if args.no_manifest:
+        overrides["generate_manifest"] = False
+    if overrides:
+        config = ResearchConfig(**{**config.to_dict(), **overrides})
     raw_data = load_market_data(
         args.data_source,
         csv_path=args.csv_path,
@@ -101,15 +124,15 @@ def main(argv: list[str] | None = None) -> int:
     metrics = artifacts.metrics
 
     if workflow_artifacts is not None:
-        print("AlphaLab Agent v0.6 agent demo complete")
+        print("AlphaLab Agent v0.7 agent demo complete")
         print("Steps: goal -> ResearchPlan -> step logs -> deterministic research tools -> reviewer -> report")
         print(f"Plan: {workflow_artifacts.plan_path}")
         print(f"Step logs: {workflow_artifacts.step_log_path}")
     else:
-        print("AlphaLab Agent v0.6 demo complete")
+        print("AlphaLab Agent v0.7 demo complete")
         print(
             "Steps: synthetic data -> panel -> factors -> labels -> factor analysis -> "
-            "walk-forward validation -> sensitivity -> backtest -> metrics -> reviewer -> report"
+            "execution backtest -> benchmarks -> walk-forward validation -> sensitivity -> reviewer -> report"
         )
     print(f"Reviewer status: {summarize_review(artifacts.review_checks)}")
     print(f"Periods: {metrics['periods']}")
@@ -124,6 +147,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"HTML report: {artifacts.html_report_path}")
     if artifacts.chart_paths:
         print(f"Charts: {', '.join(str(path) for path in artifacts.chart_paths.values())}")
+    if artifacts.manifest_path is not None:
+        print(f"Run manifest: {artifacts.manifest_path}")
     return 0
 
 

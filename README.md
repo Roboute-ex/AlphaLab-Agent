@@ -2,7 +2,7 @@
 
 AlphaLab Agent 是一个面向量化策略实习与 Agent 项目展示的本地可复现低/中频股票多因子研究系统。
 
-当前版本：`v0.6`。远程仓库已有 `v0.1`，本次不再拆分 `v0.2-v0.6`，而是作为一次合并式升级完成并准备提交。
+当前版本：`v0.7`。`v0.1` 已单独提交和打 tag，`v0.2-v0.6` 已作为一次合并式升级完成；本轮 `v0.7` 聚焦 Research Validity & Engineering Hardening。
 
 ## 项目定位
 
@@ -13,76 +13,46 @@ synthetic market data
 -> panel builder
 -> factor calculation
 -> forward return label
--> factor analysis
+-> factor diagnostics
+-> execution-based backtest
+-> benchmark comparison
 -> walk-forward validation
 -> parameter sensitivity
--> top-k long-only backtest
 -> risk metrics
 -> reviewer checks
--> optional deterministic agent-style workflow logs
--> optional Streamlit demo
--> optional explicit real data adapters
+-> run_manifest.json
 -> markdown / html report
 ```
 
 核心计算由确定性 Python 代码完成，不依赖 LLM 直接生成收益、风险、Reviewer 结论或回测结果。
 
-## 当前版本说明
-
-- `v0.1`: deterministic quant research core，已单独提交并打 tag。
-- `v0.2-v0.6`: 在本次合并式升级中一起完成，当前版本定为 `v0.6`。
-- 后续 `v0.7`: public demo polish，尚未完成。
-
-## 功能分层
+## 版本路线
 
 ### v0.1: deterministic quant research core
 
-- 固定随机种子的 synthetic OHLCV 数据。
-- date-symbol panel builder。
-- baseline factors: momentum、reversal、low volatility、volume trend。
-- forward return label。
-- top-k long-only equal-weight backtest。
-- risk metrics 与 deterministic Reviewer。
-- Markdown report 与 pytest 测试。
+- fixed-seed synthetic OHLCV data。
+- panel builder、baseline factors、forward return label。
+- top-k long-only label-based backtest。
+- risk metrics、Reviewer、Markdown report、pytest。
 
-### v0.2: research analysis upgrade
+### v0.2-v0.6: 合并式升级
 
-- JSON config。
-- Factor IC / RankIC。
-- 分层收益分析。
-- optional chart generation。
-- HTML report。
+- `v0.2`: JSON config、IC / RankIC、分层收益、图表、HTML report。
+- `v0.3`: deterministic PlannerAgent、ResearchPlan parser、step logs、agent demo。
+- `v0.4`: optional Streamlit demo 和 fallback。
+- `v0.5`: disabled-by-default CSV / yfinance data adapters。
+- `v0.6`: walk-forward validation、parameter sensitivity、robustness checks、Reviewer 增强。
 
-### v0.3: agent-style workflow
+### v0.7: research validity and engineering hardening
 
-- deterministic `PlannerAgent`，不依赖 LLM。
-- `ResearchPlan` parser。
-- deterministic step logs。
-- `--agent-demo` CLI。
-- `artifacts/research_plan.json`。
-- `artifacts/step_logs.json`。
+- execution-based signal-to-portfolio backtest。
+- benchmark / baseline comparison。
+- factor diagnostics enhancement。
+- train-only factor weighting for walk-forward validation。
+- run_manifest.json。
+- GitHub Actions CI。
 
-### v0.4: optional Streamlit demo
-
-- optional Streamlit app。
-- Streamlit 未安装时 graceful fallback。
-- UI entrypoint: `python -m streamlit run src/alphalab_agent/app/streamlit_app.py`。
-- 参数展示、报告展示、Factor Analysis、Validation、Positions、Workflow Logs 页面。
-
-### v0.5: optional real data adapters
-
-- disabled-by-default CSV OHLCV adapter。
-- disabled-by-default yfinance adapter。
-- 默认仍然使用 synthetic data。
-- `data_source` 标注。
-- Report / Reviewer 能区分 synthetic、csv、yfinance。
-
-### v0.6: robustness and validation
-
-- walk-forward validation。
-- parameter sensitivity。
-- robustness checks。
-- Reviewer 增强：样本外覆盖、样本外 Sharpe、train/test Sharpe gap、参数敏感性、成本和风险提示。
+后续展示打磨、截图、GIF、视频脚本、简历 bullet 和 release notes 大改放到后续阶段，不属于本轮 v0.7。
 
 ## Quickstart
 
@@ -92,19 +62,13 @@ synthetic market data
 python -m pip install -e ".[dev]"
 ```
 
-如果 Windows 上 `python` 指向 Microsoft Store launcher，可以改用：
-
-```bash
-py -m pip install -e ".[dev]"
-```
-
 运行正式 pytest：
 
 ```bash
 py -m pytest -q
 ```
 
-在受限环境中，如果不能使用 pytest，可以运行 fallback runner：
+运行 fallback runner：
 
 ```bash
 py scripts\run_tests.py
@@ -112,50 +76,56 @@ py scripts\run_tests.py
 
 ## Demo 命令
 
-运行默认 synthetic research demo：
+默认 synthetic research demo：
 
 ```bash
 py -m alphalab_agent.cli --demo
 ```
 
-运行 deterministic agent-style demo：
+deterministic agent-style demo：
 
 ```bash
 py -m alphalab_agent.cli --agent-demo --goal "研究默认 synthetic 多因子策略"
 ```
 
-运行示例脚本：
+示例脚本：
 
 ```bash
 py examples\run_v0_research.py
 ```
 
-运行 optional Streamlit demo：
+optional Streamlit demo：
 
 ```bash
 python -m pip install -e ".[app]"
 python -m streamlit run src/alphalab_agent/app/streamlit_app.py
 ```
 
-如果未安装 Streamlit，以下命令会输出安装提示并正常退出：
+未安装 Streamlit 时可验证 fallback：
 
 ```bash
 py -m alphalab_agent.app.streamlit_app
 ```
 
-## Optional Data Adapters
+## CLI 参数
 
-默认路径不调用真实行情 API。只有显式指定 `--data-source csv` 或 `--data-source yfinance` 时，才会进入对应 adapter。
+常用参数：
 
-本地 CSV 示例：
+```text
+--demo
+--agent-demo
+--config path/to/config.json
+--output-dir artifacts
+--backtest-mode execution|label_based
+--weighting-mode equal_weight|config_weight|ic_weight_train_only|rankic_weight_train_only
+--benchmark-seed 42
+--no-manifest
+```
+
+真实数据 adapter 仍然 disabled-by-default，只有显式指定才启用：
 
 ```bash
 py -m alphalab_agent.cli --demo --data-source csv --csv-path path/to/ohlcv.csv
-```
-
-yfinance 示例：
-
-```bash
 python -m pip install -e ".[data]"
 py -m alphalab_agent.cli --demo --data-source yfinance --ticker AAPL --start 2020-01-01 --end 2024-01-01
 ```
@@ -173,74 +143,62 @@ artifacts/
 ```text
 artifacts/report.md
 artifacts/report.html
+artifacts/run_manifest.json
 artifacts/research_plan.json
 artifacts/step_logs.json
 artifacts/equity_curve.png
 ```
 
-这些 demo 产物会被 `.gitignore` 忽略，避免把本地运行结果混入提交。`artifacts/.gitkeep` 用于保留目录，可以提交。
+这些自动生成物会被 `.gitignore` 忽略，避免本地 demo 结果进入提交。`artifacts/.gitkeep` 用于保留目录，可以提交。
 
 ## Example Output
 
 ```text
-AlphaLab Agent v0.6 demo complete
-Steps: synthetic data -> panel -> factors -> labels -> factor analysis -> walk-forward validation -> sensitivity -> backtest -> metrics -> reviewer -> report
+AlphaLab Agent v0.7 demo complete
+Steps: synthetic data -> panel -> factors -> labels -> factor analysis -> execution backtest -> benchmarks -> walk-forward validation -> sensitivity -> reviewer -> report
 Reviewer status: WARN
-Periods: 96
-Total return: 9.94%
-Annualized return: 5.10%
-Sharpe: 0.36
-Max drawdown: -18.04%
-Average turnover: 73.75%
-Average cost drag: 0.037%
+Periods: 481
+Total return: ...
+Sharpe: ...
+Max drawdown: ...
 Report: artifacts\report.md
 HTML report: artifacts\report.html
+Run manifest: artifacts\run_manifest.json
 ```
 
 ## 项目结构
 
 ```text
 AlphaLab Agent/
+  .github/workflows/ci.yml
   AGENTS.md
   README.md
   pyproject.toml
-  .gitignore
-  artifacts/
-    .gitkeep
-  docs/
-    PROJECT_PLAN.md
+  docs/PROJECT_PLAN.md
   examples/
-    run_v0_research.py
-    v0_2_config.json
-    v0_3_goal.txt
   scripts/
-    run_tests.py
-  src/
-    alphalab_agent/
-      app/streamlit_app.py
-      analysis/factor_analysis.py
-      analysis/robustness.py
-      cli.py
-      config.py
-      pipeline.py
-      data/adapters.py
-      data/synthetic.py
-      research/panel.py
-      research/factors.py
-      research/labels.py
-      backtest/portfolio.py
-      backtest/metrics.py
-      review/checks.py
-      workflow/planner.py
-      workflow/agent.py
-      workflow/steps.py
-      report/markdown.py
-      report/html.py
-      report/charts.py
+  src/alphalab_agent/
+    analysis/
+      factor_analysis.py
+      robustness.py
+      weighting.py
+    backtest/
+      benchmark.py
+      execution.py
+      metrics.py
+      portfolio.py
+    app/streamlit_app.py
+    data/
+    report/
+      charts.py
+      html.py
+      manifest.py
+      markdown.py
+    research/
+    review/
+    workflow/
   tests/
 ```
-
-这是标准 `src` layout。建议先安装 `python -m pip install -e ".[dev]"`，再运行模块命令。
 
 ## 风险提示
 
@@ -257,8 +215,8 @@ AlphaLab Agent/
 ## 面试讲法
 
 - 这是一个 quant research workflow，不是金融聊天机器人。
-- `v0.1` 先证明了 deterministic research core：数据、panel、因子、标签、回测、风险指标、Reviewer、报告。
-- 本次合并式升级把 `v0.2-v0.6` 一起补齐：分析、Agent-style workflow、Streamlit、optional data adapters、robustness validation。
-- Agent 部分是 deterministic PlannerAgent，展示任务拆解、结构化 ResearchPlan、step logs 和工具编排，不让 LLM 直接生成核心数值结论。
-- Reviewer 不只展示好看的收益率，还展示风险、成本、turnover、drawdown、样本外验证和参数敏感性。
-- optional dependencies 都要 graceful fallback，不能破坏默认 synthetic deterministic path。
+- `v0.7` 从“能跑通研究闭环”升级到“更像真实研究验证流程”：execution backtest、benchmark、factor diagnostics、train-only weighting、manifest、CI。
+- 默认回测不再直接用 forward_return label 作为主收益来源，而是用 signal date 后的 realized return。
+- Reviewer 不只展示收益率，还展示 benchmark、风险、成本、turnover、drawdown、样本外验证、参数敏感性和因子诊断。
+- Reviewer severity 中，FAIL 保留给数据无效、无收益、无持仓或流程断裂；弱信号、跑输 benchmark、高成本和高换手属于 WARN。
+- Agent 部分仍是 deterministic PlannerAgent，不接 LLM，不让 LLM 生成核心数值结论。

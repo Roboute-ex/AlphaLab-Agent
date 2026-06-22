@@ -116,6 +116,26 @@ def run_topk_long_only_backtest(
     )
 
 
+def run_label_based_topk_backtest(
+    research_frame: pd.DataFrame,
+    label_col: str,
+    score_col: str = "composite_score",
+    top_k: int = 5,
+    rebalance_every: int = 5,
+    transaction_cost_bps: float = 5.0,
+) -> PortfolioBacktestResult:
+    """Backward-compatible label-based top-k backtest."""
+
+    return run_topk_long_only_backtest(
+        research_frame=research_frame,
+        label_col=label_col,
+        score_col=score_col,
+        top_k=top_k,
+        rebalance_every=rebalance_every,
+        transaction_cost_bps=transaction_cost_bps,
+    )
+
+
 def _calculate_turnover(previous: dict[str, float], current: dict[str, float]) -> float:
     if not previous:
         return sum(current.values())

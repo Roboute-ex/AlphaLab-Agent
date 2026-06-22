@@ -16,6 +16,7 @@ artifacts/*.md
 artifacts/*.html
 artifacts/*.png
 artifacts/*.json
+artifacts/run_manifest.json
 artifacts/tmp*/
 artifacts/test*/
 reports/*.md

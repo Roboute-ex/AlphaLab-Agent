@@ -7,8 +7,11 @@ from itertools import product
 import pandas as pd
 
 from alphalab_agent.backtest.metrics import calculate_risk_metrics
+from alphalab_agent.backtest.execution import run_signal_execution_backtest
 from alphalab_agent.backtest.portfolio import run_topk_long_only_backtest
 from alphalab_agent.config import ResearchConfig
+from alphalab_agent.research.factors import add_composite_score
+from alphalab_agent.analysis.weighting import learn_factor_weights, weights_to_frame
 
 
 VALIDATION_COLUMNS = [
@@ -48,6 +51,7 @@ def calculate_walk_forward_validation(
     label_col: str,
     config: ResearchConfig,
     score_col: str = "composite_score",
+    factor_cols: list[str] | None = None,
 ) -> pd.DataFrame:
     """Run deterministic expanding-window train/test validation.
 
@@ -88,28 +92,84 @@ def calculate_walk_forward_validation(
 
         train_dates = dates[:train_end]
         test_dates = dates[test_start:test_end]
+        fold_score_col = score_col
+        fold_frame = frame
+        if factor_cols:
+            train_raw = frame.loc[frame["date"].isin(train_dates)]
+            weights = learn_factor_weights(
+                train_raw,
+                label_col=label_col,
+                factor_cols=factor_cols,
+                mode=config.weighting_mode,
+                config_weights=config.factor_weights,
+            )
+            fold_score_col = "_walk_forward_score"
+            fold_frame = add_composite_score(frame, weights=weights, score_col=fold_score_col)
         rows.append(
             _segment_metrics(
-                frame=frame.loc[frame["date"].isin(train_dates)],
+                frame=fold_frame.loc[fold_frame["date"].isin(train_dates)],
                 fold=fold,
                 segment="train",
                 label_col=label_col,
-                score_col=score_col,
+                score_col=fold_score_col,
                 config=config,
             )
         )
         rows.append(
             _segment_metrics(
-                frame=frame.loc[frame["date"].isin(test_dates)],
+                frame=fold_frame.loc[fold_frame["date"].isin(test_dates)],
                 fold=fold,
                 segment="test",
                 label_col=label_col,
-                score_col=score_col,
+                score_col=fold_score_col,
                 config=config,
             )
         )
 
     return pd.DataFrame(rows, columns=VALIDATION_COLUMNS)
+
+
+def calculate_walk_forward_factor_weights(
+    research_frame: pd.DataFrame,
+    label_col: str,
+    config: ResearchConfig,
+    factor_cols: list[str],
+) -> pd.DataFrame:
+    """Return train-only learned factor weights for each walk-forward fold."""
+
+    missing = {"date", "symbol", label_col, *factor_cols}.difference(research_frame.columns)
+    if missing:
+        raise ValueError(f"Missing research frame columns for walk-forward weights: {sorted(missing)}")
+    frame = research_frame.copy()
+    frame["date"] = pd.to_datetime(frame["date"])
+    dates = frame["date"].drop_duplicates().sort_values().to_list()
+    if config.validation_splits <= 0 or len(dates) < 10:
+        return pd.DataFrame(columns=["fold", "weighting_mode", "factor", "weight"])
+
+    embargo = config.validation_embargo_periods
+    if embargo is None:
+        embargo = max(config.forward_days, config.rebalance_every)
+    initial_train_size = max(1, int(len(dates) * config.validation_train_fraction))
+    remaining = len(dates) - initial_train_size - max(0, int(embargo))
+    if remaining <= 0:
+        return pd.DataFrame(columns=["fold", "weighting_mode", "factor", "weight"])
+    test_window = max(1, remaining // config.validation_splits)
+
+    weights_by_fold: dict[int, dict[str, float]] = {}
+    for fold in range(1, config.validation_splits + 1):
+        train_end = initial_train_size + (fold - 1) * test_window
+        if train_end >= len(dates):
+            break
+        train_dates = dates[:train_end]
+        train_frame = frame.loc[frame["date"].isin(train_dates)]
+        weights_by_fold[fold] = learn_factor_weights(
+            train_frame,
+            label_col=label_col,
+            factor_cols=factor_cols,
+            mode=config.weighting_mode,
+            config_weights=config.factor_weights,
+        )
+    return weights_to_frame(weights_by_fold, config.weighting_mode)
 
 
 def calculate_parameter_sensitivity(
@@ -129,14 +189,23 @@ def calculate_parameter_sensitivity(
 
     rows: list[dict[str, float | int]] = []
     for top_k, cost_bps in product(top_k_values, cost_values):
-        backtest = run_topk_long_only_backtest(
-            research_frame=frame,
-            label_col=label_col,
-            score_col=score_col,
-            top_k=top_k,
-            rebalance_every=config.rebalance_every,
-            transaction_cost_bps=cost_bps,
-        )
+        if config.backtest_mode == "execution" and "return_1d" in frame.columns:
+            backtest = run_signal_execution_backtest(
+                research_frame=frame,
+                score_col=score_col,
+                top_k=top_k,
+                rebalance_every=config.rebalance_every,
+                transaction_cost_bps=cost_bps,
+            )
+        else:
+            backtest = run_topk_long_only_backtest(
+                research_frame=frame,
+                label_col=label_col,
+                score_col=score_col,
+                top_k=top_k,
+                rebalance_every=config.rebalance_every,
+                transaction_cost_bps=cost_bps,
+            )
         metrics = calculate_risk_metrics(backtest.portfolio_returns, periods_per_year=periods_per_year)
         rows.append(
             {
@@ -169,14 +238,23 @@ def _segment_metrics(
         metrics = calculate_risk_metrics(pd.DataFrame(columns=["net_return"]), periods_per_year=periods_per_year)
         return _validation_row(frame, fold, segment, metrics)
 
-    backtest = run_topk_long_only_backtest(
-        research_frame=frame,
-        label_col=label_col,
-        score_col=score_col,
-        top_k=min(config.top_k, int(frame["symbol"].nunique())),
-        rebalance_every=config.rebalance_every,
-        transaction_cost_bps=config.transaction_cost_bps,
-    )
+    if config.backtest_mode == "execution" and "return_1d" in frame.columns:
+        backtest = run_signal_execution_backtest(
+            research_frame=frame,
+            score_col=score_col,
+            top_k=min(config.top_k, int(frame["symbol"].nunique())),
+            rebalance_every=config.rebalance_every,
+            transaction_cost_bps=config.transaction_cost_bps,
+        )
+    else:
+        backtest = run_topk_long_only_backtest(
+            research_frame=frame,
+            label_col=label_col,
+            score_col=score_col,
+            top_k=min(config.top_k, int(frame["symbol"].nunique())),
+            rebalance_every=config.rebalance_every,
+            transaction_cost_bps=config.transaction_cost_bps,
+        )
     metrics = calculate_risk_metrics(backtest.portfolio_returns, periods_per_year=periods_per_year)
     return _validation_row(frame, fold, segment, metrics)
 

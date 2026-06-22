@@ -10,21 +10,28 @@ def test_v0_pipeline_smoke_and_reviewer_are_deterministic():
 
     assert first.metrics == second.metrics
     assert first.factor_ic.equals(second.factor_ic)
+    assert first.factor_diagnostics.equals(second.factor_diagnostics)
     assert first.quantile_returns.equals(second.quantile_returns)
+    assert first.benchmark_comparison.comparison_summary.equals(second.benchmark_comparison.comparison_summary)
     assert first.backtest.portfolio_returns.equals(second.backtest.portfolio_returns)
     assert first.report_path is None
-    assert summarize_review(first.review_checks) in {"PASS", "WARN", "FAIL"}
+    assert summarize_review(first.review_checks) in {"PASS", "WARN"}
     assert "not investment advice" in first.report_markdown
     for heading in [
         "## Research Hypothesis",
         "## Data Summary",
         "## Factor Summary",
         "## Backtest Config",
+        "## Backtest Assumptions",
         "## Risk Metrics",
         "## Factor IC / RankIC Summary",
+        "## Factor Diagnostics",
         "## Quantile Return Analysis",
+        "## Benchmark Comparison",
         "## Walk-Forward Validation",
+        "## Walk-forward Factor Weights",
         "## Parameter Sensitivity",
+        "## Run Manifest",
         "## Reviewer Findings",
         "## Limitations",
         "## Disclaimer",
@@ -48,6 +55,9 @@ def test_pipeline_writes_report_when_enabled():
     assert artifacts.html_report_path is not None
     assert artifacts.html_report_path.exists()
     assert artifacts.html_report_path.name == "report.html"
+    assert artifacts.manifest_path is not None
+    assert artifacts.manifest_path.exists()
+    assert artifacts.manifest_path.name == "run_manifest.json"
     shutil.rmtree(output_dir, ignore_errors=True)
 
 
@@ -70,23 +80,130 @@ def test_reviewer_detects_abnormal_results():
                 {"fold": 1, "segment": "test", "periods": 1, "sharpe": -3.0, "max_drawdown": -0.90},
             ]
         ),
+        walk_forward_weights=pd.DataFrame(
+            [
+                {"fold": 1, "weighting_mode": "equal_weight", "factor": "momentum_20", "weight": 0.5},
+                {"fold": 1, "weighting_mode": "equal_weight", "factor": "reversal_5", "weight": 0.5},
+            ]
+        ),
         sensitivity_analysis=pd.DataFrame(
             [
                 {"sharpe": -5.0, "max_drawdown": -0.90},
                 {"sharpe": 5.0, "max_drawdown": -0.20},
             ]
         ),
+        benchmark_comparison=pd.DataFrame(
+            [
+                {
+                    "benchmark": "equal_weight_universe",
+                    "excess_total_return": -0.5,
+                    "excess_sharpe": -1.0,
+                },
+                {
+                    "benchmark": "random_topk",
+                    "excess_total_return": -0.2,
+                    "excess_sharpe": -0.5,
+                },
+            ]
+        ),
+        factor_diagnostics=pd.DataFrame(
+            [
+                {
+                    "factor": "bad",
+                    "observations": 1,
+                    "ic_positive_ratio": 0.1,
+                    "top_bottom_spread": -0.1,
+                    "quantile_monotonicity_score": -1.0,
+                    "factor_missing_rate": 0.8,
+                }
+            ]
+        ),
     )
     statuses = {check.name: check.status for check in checks}
-    assert statuses["backtest_periods"] == "FAIL"
+    assert statuses["backtest_periods"] == "WARN"
     assert statuses["factor_score_coverage"] == "FAIL"
-    assert statuses["drawdown_control"] == "FAIL"
-    assert statuses["sharpe_sanity"] == "FAIL"
-    assert statuses["turnover_sanity"] == "FAIL"
-    assert statuses["cost_drag"] == "FAIL"
-    assert statuses["walk_forward_coverage"] == "FAIL"
-    assert statuses["walk_forward_oos_sharpe"] == "FAIL"
-    assert statuses["walk_forward_drawdown"] == "FAIL"
-    assert statuses["train_test_sharpe_gap"] == "FAIL"
-    assert statuses["parameter_sensitivity"] == "FAIL"
-    assert statuses["sensitivity_drawdown"] == "FAIL"
+    assert statuses["drawdown_control"] == "WARN"
+    assert statuses["sharpe_sanity"] == "WARN"
+    assert statuses["turnover_sanity"] == "WARN"
+    assert statuses["cost_drag"] == "WARN"
+    assert statuses["walk_forward_coverage"] == "WARN"
+    assert statuses["walk_forward_oos_sharpe"] == "WARN"
+    assert statuses["walk_forward_drawdown"] == "WARN"
+    assert statuses["train_test_sharpe_gap"] == "WARN"
+    assert statuses["walk_forward_factor_weights"] == "PASS"
+    assert statuses["parameter_sensitivity"] == "WARN"
+    assert statuses["sensitivity_drawdown"] == "WARN"
+    assert statuses["equal_weight_excess_return"] == "WARN"
+    assert statuses["random_baseline_excess_return"] == "WARN"
+    assert statuses["factor_ic_observations"] == "WARN"
+    assert statuses["factor_ic_positive_ratio"] == "WARN"
+    assert statuses["factor_top_bottom_spread"] == "WARN"
+    assert statuses["factor_quantile_monotonicity"] == "WARN"
+    assert statuses["factor_missing_rate"] == "WARN"
+    assert summarize_review(checks) == "FAIL"
+
+
+def test_reviewer_summarizes_quality_risks_as_warn_without_structural_failures():
+    import pandas as pd
+
+    config = ResearchConfig(seed=23, n_days=120, n_symbols=6, top_k=3)
+    panel = pd.DataFrame(
+        {
+            "date": pd.date_range("2024-01-01", periods=120, freq="B").repeat(6),
+            "symbol": [f"S{i}" for _ in range(120) for i in range(6)],
+        }
+    )
+    scored = panel.assign(composite_score=1.0)
+    returns = pd.DataFrame({"transaction_cost": [0.01, 0.02]})
+    metrics = {
+        "periods": 2,
+        "max_drawdown": -0.95,
+        "sharpe": -3.0,
+        "average_turnover": 1.5,
+        "total_cost_drag": 0.25,
+    }
+    checks = run_reviewer_checks(
+        panel,
+        scored,
+        returns,
+        metrics,
+        config,
+        walk_forward_validation=pd.DataFrame(
+            [
+                {"fold": 1, "segment": "train", "periods": 10, "sharpe": 3.0, "max_drawdown": -0.10},
+                {"fold": 1, "segment": "test", "periods": 1, "sharpe": -3.0, "max_drawdown": -0.90},
+            ]
+        ),
+        walk_forward_weights=pd.DataFrame(
+            [
+                {"fold": 1, "weighting_mode": "equal_weight", "factor": "momentum_20", "weight": 0.5},
+                {"fold": 1, "weighting_mode": "equal_weight", "factor": "reversal_5", "weight": 0.5},
+            ]
+        ),
+        sensitivity_analysis=pd.DataFrame(
+            [
+                {"sharpe": -5.0, "max_drawdown": -0.90},
+                {"sharpe": 5.0, "max_drawdown": -0.20},
+            ]
+        ),
+        benchmark_comparison=pd.DataFrame(
+            [
+                {"benchmark": "equal_weight_universe", "excess_total_return": -0.5, "excess_sharpe": -1.0},
+                {"benchmark": "random_topk", "excess_total_return": -0.2, "excess_sharpe": -0.5},
+            ]
+        ),
+        factor_diagnostics=pd.DataFrame(
+            [
+                {
+                    "factor": "weak",
+                    "observations": 1,
+                    "ic_positive_ratio": 0.1,
+                    "top_bottom_spread": -0.1,
+                    "quantile_monotonicity_score": -1.0,
+                    "factor_missing_rate": 0.8,
+                }
+            ]
+        ),
+    )
+
+    assert summarize_review(checks) == "WARN"

@@ -26,6 +26,8 @@ def test_config_validates_v0_6_robustness_settings():
         {"validation_train_fraction": 1.0},
         {"validation_embargo_periods": -1},
         {"sensitivity_top_k_step": 0},
+        {"backtest_mode": "bad"},
+        {"weighting_mode": "bad"},
     ]:
         try:
             ResearchConfig(**kwargs)
