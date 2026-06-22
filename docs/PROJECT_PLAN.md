@@ -72,6 +72,7 @@ Minimal dependencies:
 - Python 3.10+
 - pandas
 - numpy
+- scipy: core dependency for Spearman / RankIC calculations used by pandas correlation.
 
 Dev dependency:
 
