@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "alphalab-agent"
+version = "0.1"
+description = "A deterministic local multi-factor research workflow for quant and agent internship demos."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "numpy>=1.23",
+  "pandas>=1.5",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=7.0",
+]
+viz = [
+  "matplotlib>=3.7",
+]
+app = [
+  "streamlit>=1.30",
+]
+storage = [
+  "duckdb>=0.9",
+]
+agent = [
+  "langgraph>=0.2",
+]
+
+[project.scripts]
+alphalab-agent = "alphalab_agent.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-q -p no:cacheprovider"
