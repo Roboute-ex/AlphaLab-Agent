@@ -23,9 +23,13 @@ def build_run_manifest(
     html_report_path: Path | None,
     chart_paths: dict[str, Path],
     benchmark_summary: pd.DataFrame,
+    data_quality: object | None = None,
+    supervised_model: dict[str, Any] | None = None,
+    ml_oos_evaluation: pd.DataFrame | None = None,
 ) -> dict[str, Any]:
     """Build a JSON-serializable run manifest without secrets or local absolute paths."""
 
+    data_quality_dict = data_quality.to_dict() if hasattr(data_quality, "to_dict") else {}
     return {
         "project_name": "AlphaLab Agent",
         "project_version": __version__,
@@ -41,6 +45,15 @@ def build_run_manifest(
         },
         "metrics_summary": _json_safe(metrics),
         "benchmark_summary": benchmark_summary.to_dict(orient="records") if not benchmark_summary.empty else [],
+        "data_quality_summary": data_quality_dict.get("summary", {}),
+        "data_quality_status": data_quality_dict.get("status", "UNKNOWN"),
+        "data_quality_issues": data_quality_dict.get("issues", []),
+        "supervised_model": _json_safe_any(supervised_model or {"enabled": False}),
+        "ml_oos_evaluation": (
+            _json_safe_any(ml_oos_evaluation.to_dict(orient="records"))
+            if ml_oos_evaluation is not None and not ml_oos_evaluation.empty
+            else []
+        ),
         "reviewer_status": summarize_review(checks),
         "reviewer_checks": [check.__dict__ for check in checks],
     }
@@ -87,3 +100,15 @@ def _git_commit() -> str:
 
 def _json_safe(values: dict[str, float | int]) -> dict[str, float | int]:
     return {key: float(value) if isinstance(value, float) else value for key, value in values.items()}
+
+
+def _json_safe_any(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {str(key): _json_safe_any(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_json_safe_any(item) for item in value]
+    if isinstance(value, tuple):
+        return [_json_safe_any(item) for item in value]
+    if hasattr(value, "item"):
+        return value.item()
+    return value

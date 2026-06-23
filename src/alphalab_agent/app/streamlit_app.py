@@ -29,6 +29,8 @@ def build_demo_config(
     transaction_cost_bps: float = 5.0,
     backtest_mode: str = "execution",
     weighting_mode: str = "equal_weight",
+    enable_supervised_model: bool = False,
+    model_type: str = "ridge",
     output_dir: str | Path = "artifacts",
 ) -> ResearchConfig:
     """Build a deterministic config from UI values."""
@@ -43,6 +45,8 @@ def build_demo_config(
         transaction_cost_bps=transaction_cost_bps,
         backtest_mode=backtest_mode,
         weighting_mode=weighting_mode,
+        enable_supervised_model=enable_supervised_model,
+        model_type=model_type,
         output_dir=Path(output_dir),
     )
 
@@ -76,6 +80,8 @@ def main() -> None:
             ["equal_weight", "config_weight", "ic_weight_train_only", "rankic_weight_train_only"],
             index=0,
         )
+        enable_supervised_model = st.checkbox("Enable supervised factor model", value=False)
+        model_type = st.selectbox("Model type", ["ridge", "linear"], index=0)
         goal = st.text_area("Research goal", value=DEFAULT_GOAL, height=100)
         run_clicked = st.button("Run Deterministic Workflow", type="primary")
 
@@ -93,6 +99,8 @@ def main() -> None:
         transaction_cost_bps=float(transaction_cost_bps),
         backtest_mode=str(backtest_mode),
         weighting_mode=str(weighting_mode),
+        enable_supervised_model=bool(enable_supervised_model),
+        model_type=str(model_type),
     )
 
     with st.spinner("Running deterministic research workflow..."):
@@ -103,8 +111,8 @@ def main() -> None:
 
     _render_metrics(st, metrics, review_status)
 
-    tab_report, tab_analysis, tab_validation, tab_benchmark, tab_positions, tab_logs = st.tabs(
-        ["Report", "Factor Analysis", "Validation", "Benchmark", "Positions", "Workflow Logs"]
+    tab_report, tab_analysis, tab_validation, tab_benchmark, tab_ml, tab_positions, tab_logs = st.tabs(
+        ["Report", "Factor Analysis", "Validation", "Benchmark", "ML", "Positions", "Workflow Logs"]
     )
     with tab_report:
         st.markdown(artifacts.report_markdown)
@@ -138,6 +146,14 @@ def main() -> None:
         st.dataframe(artifacts.benchmark_comparison.benchmark_metrics, use_container_width=True)
         if artifacts.manifest_path is not None:
             st.caption(f"Run manifest: {artifacts.manifest_path}")
+
+    with tab_ml:
+        st.subheader("Data Quality")
+        st.json(artifacts.data_quality.to_dict())
+        st.subheader("Supervised Factor Model")
+        st.json(artifacts.supervised_model)
+        st.subheader("Out-of-sample ML Evaluation")
+        st.dataframe(artifacts.ml_oos_evaluation, use_container_width=True)
 
     with tab_positions:
         st.subheader("Recent Portfolio Returns")

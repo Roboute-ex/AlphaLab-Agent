@@ -14,6 +14,7 @@ from alphalab_agent.review.checks import ReviewCheck, summarize_review
 def render_markdown_report(
     config: ResearchConfig,
     metrics: dict[str, float | int],
+    data_quality: object,
     factor_ic: pd.DataFrame,
     factor_diagnostics: pd.DataFrame,
     quantile_returns: pd.DataFrame,
@@ -21,6 +22,8 @@ def render_markdown_report(
     benchmark_metrics: pd.DataFrame,
     walk_forward_validation: pd.DataFrame,
     walk_forward_weights: pd.DataFrame,
+    supervised_model: dict[str, object],
+    ml_oos_evaluation: pd.DataFrame,
     sensitivity_analysis: pd.DataFrame,
     manifest_path: Path | None,
     checks: Iterable[ReviewCheck],
@@ -36,7 +39,7 @@ def render_markdown_report(
     else:
         dataset_limit = "- The dataset comes from an explicitly selected adapter and still requires independent validation."
     lines = [
-        "# AlphaLab Agent v0.7 Research Report",
+        "# AlphaLab Agent v0.8 Research Report",
         "",
         "## Summary",
         "",
@@ -58,7 +61,8 @@ def render_markdown_report(
         "## Workflow",
         "",
         f"{data_description} -> panel builder -> factor calculation -> forward return label -> "
-        "factor diagnostics -> execution backtest -> benchmark comparison -> robustness -> reviewer -> report",
+        "data quality -> factor diagnostics -> execution backtest -> benchmark comparison -> "
+        "robustness -> optional supervised model -> reviewer -> report",
         "",
         "## Research Hypothesis",
         "",
@@ -76,9 +80,17 @@ def render_markdown_report(
         f"| Symbols | `{config.n_symbols}` |",
         f"| Forward label horizon | `{config.forward_days}` days |",
         "",
+        "## Data Quality",
+        "",
+        _dict_to_markdown(getattr(data_quality, "summary", {})),
+        "",
+        "### Data Quality Issues",
+        "",
+        _frame_to_markdown(_quality_issues_to_frame(data_quality)),
+        "",
         "## Backtest Assumptions",
         "",
-        "- v0.7 defaults to execution-based signal-to-portfolio backtesting.",
+        "- v0.8 defaults to execution-based signal-to-portfolio backtesting.",
         "- Signal dates use scores available on that date.",
         "- Portfolio returns start from the next realized daily return after each signal date.",
         "- Forward return labels remain available for IC / RankIC and quantile analysis, not as the default backtest return source.",
@@ -146,6 +158,14 @@ def render_markdown_report(
         "",
         _frame_to_markdown(walk_forward_weights),
         "",
+        "## Supervised Factor Model",
+        "",
+        _dict_to_markdown(supervised_model),
+        "",
+        "## Out-of-sample ML Evaluation",
+        "",
+        _frame_to_markdown(ml_oos_evaluation),
+        "",
         "## Parameter Sensitivity",
         "",
         _frame_to_markdown(sensitivity_analysis),
@@ -189,13 +209,14 @@ def render_markdown_report(
             dataset_limit,
             "- The execution backtest is still a research simulator, not a production execution engine.",
             "- High turnover can make a strategy fragile after realistic costs and constraints.",
-            "- v0.7 validation is a lightweight deterministic check, not production-grade model validation.",
+            "- v0.8 validation is a lightweight deterministic check, not production-grade model validation.",
+            "- Supervised model results are train-only research diagnostics, not production predictions.",
             "",
             "## Safety Notes",
             "",
-            "- v0.7 does not use real market data APIs by default.",
-            "- v0.7 does not use an LLM by default.",
-            "- v0.7 does not place orders or connect to a broker.",
+            "- v0.8 does not use real market data APIs by default.",
+            "- v0.8 does not use an LLM by default.",
+            "- v0.8 does not place orders or connect to a broker.",
             "- Results do not imply real-world tradability.",
             "",
             "## Disclaimer",
@@ -247,3 +268,23 @@ def _frame_to_markdown(frame: pd.DataFrame) -> str:
     separator = "| " + " | ".join("---" for _ in display.columns) + " |"
     rows = ["| " + " | ".join(row) + " |" for row in display.to_numpy()]
     return "\n".join([header, separator, *rows])
+
+
+def _dict_to_markdown(data: dict[str, object]) -> str:
+    if not data:
+        return "_No structured summary produced._"
+    rows = []
+    for key, value in data.items():
+        rows.append({"item": key, "value": value})
+    return _frame_to_markdown(pd.DataFrame(rows))
+
+
+def _quality_issues_to_frame(data_quality: object) -> pd.DataFrame:
+    issues = getattr(data_quality, "issues", [])
+    rows = []
+    for issue in issues:
+        if hasattr(issue, "to_dict"):
+            rows.append(issue.to_dict())
+        elif isinstance(issue, dict):
+            rows.append(issue)
+    return pd.DataFrame(rows)

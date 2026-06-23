@@ -30,10 +30,15 @@ def run_reviewer_checks(
     sensitivity_analysis: pd.DataFrame | None = None,
     benchmark_comparison: pd.DataFrame | None = None,
     factor_diagnostics: pd.DataFrame | None = None,
+    data_quality: object | None = None,
+    ml_oos_evaluation: pd.DataFrame | None = None,
 ) -> list[ReviewCheck]:
     """Run rule-based checks over the research output."""
 
     checks: list[ReviewCheck] = []
+    if data_quality is not None:
+        checks.append(_data_quality_check(data_quality))
+
     unique_dates = panel["date"].nunique() if "date" in panel else 0
     unique_symbols = panel["symbol"].nunique() if "symbol" in panel else 0
 
@@ -115,6 +120,8 @@ def run_reviewer_checks(
     if factor_diagnostics is not None:
         checks.extend(_factor_diagnostic_checks(factor_diagnostics))
 
+    checks.extend(_ml_oos_checks(config, ml_oos_evaluation))
+
     checks.append(
         ReviewCheck(
             name="v0_scope",
@@ -155,11 +162,28 @@ def _quality_check(name: str, passed: bool, message: str) -> ReviewCheck:
 
 def _scope_message(config: ResearchConfig) -> str:
     if config.data_source == "synthetic":
-        return "v0.7 uses synthetic data by default, no LLM, no external market API, and no live trading."
+        return "v0.8 uses synthetic data by default, no LLM, no external market API, and no live trading."
     return (
-        f"v0.7 data source '{config.data_source}' was explicitly selected; "
+        f"v0.8 data source '{config.data_source}' was explicitly selected; "
         "no LLM, no broker connection, and no live trading."
     )
+
+
+def _data_quality_check(data_quality: object) -> ReviewCheck:
+    status = getattr(data_quality, "status", "WARN")
+    summary = getattr(data_quality, "summary", {})
+    if isinstance(summary, dict):
+        message = (
+            f"Data quality status is {status}; rows={summary.get('rows', 0)}, "
+            f"issues={summary.get('issues', 0)}."
+        )
+    else:
+        message = f"Data quality status is {status}."
+    if status == "FAIL":
+        return ReviewCheck(name="data_quality", status="FAIL", severity="error", message=message)
+    if status == "WARN":
+        return ReviewCheck(name="data_quality", status="WARN", severity="warning", message=message)
+    return ReviewCheck(name="data_quality", status="PASS", severity="info", message=message)
 
 
 def _walk_forward_checks(validation: pd.DataFrame) -> list[ReviewCheck]:
@@ -399,4 +423,54 @@ def _factor_diagnostic_checks(diagnostics: pd.DataFrame) -> list[ReviewCheck]:
         checks.append(ReviewCheck(name="factor_missing_rate", status="FAIL", severity="error", message=missing_message))
     else:
         checks.append(_quality_check("factor_missing_rate", max_missing <= 0.35, missing_message))
+    return checks
+
+
+def _ml_oos_checks(config: ResearchConfig, ml_oos_evaluation: pd.DataFrame | None) -> list[ReviewCheck]:
+    if not config.enable_supervised_model:
+        return [
+            ReviewCheck(
+                name="supervised_model",
+                status="PASS",
+                severity="info",
+                message="Supervised factor model is not enabled.",
+            )
+        ]
+    if ml_oos_evaluation is None or ml_oos_evaluation.empty:
+        return [
+            ReviewCheck(
+                name="ml_oos_evaluation",
+                status="WARN",
+                severity="warning",
+                message="Supervised factor model is enabled but produced no OOS evaluation rows.",
+            )
+        ]
+
+    failed_ratio = float((ml_oos_evaluation["status"] != "PASS").mean()) if "status" in ml_oos_evaluation else 1.0
+    mean_ic = float(ml_oos_evaluation["prediction_ic"].mean()) if "prediction_ic" in ml_oos_evaluation else 0.0
+    min_n_test = int(ml_oos_evaluation["n_test"].min()) if "n_test" in ml_oos_evaluation else 0
+    mean_spread = float(ml_oos_evaluation["top_bottom_spread"].mean()) if "top_bottom_spread" in ml_oos_evaluation else 0.0
+    checks = [
+        _check(
+            name="ml_fold_success",
+            passed=failed_ratio <= 0.34,
+            warn=failed_ratio < 1.0,
+            message=f"ML OOS warning/failure fold ratio is {failed_ratio:.2%}.",
+        ),
+        _quality_check(
+            name="ml_prediction_ic",
+            passed=mean_ic > 0.0,
+            message=f"Mean OOS prediction IC is {mean_ic:.4f}.",
+        ),
+        _quality_check(
+            name="ml_prediction_sample",
+            passed=min_n_test >= 30,
+            message=f"Minimum ML OOS test sample size is {min_n_test}.",
+        ),
+        _quality_check(
+            name="ml_top_bottom_spread",
+            passed=mean_spread >= 0.0,
+            message=f"Mean ML top-bottom spread is {mean_spread:.4%}.",
+        ),
+    ]
     return checks

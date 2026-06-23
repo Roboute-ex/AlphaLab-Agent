@@ -25,6 +25,10 @@ class ResearchConfig:
     backtest_mode: str = "execution"
     weighting_mode: str = "equal_weight"
     benchmark_seed: int = 42
+    enable_supervised_model: bool = False
+    model_type: str = "ridge"
+    model_label_col: str = "forward_return"
+    model_factor_cols: list[str] | None = None
     output_dir: Path = Path("artifacts")
     report_name: str = "report.md"
     html_report_name: str = "report.html"
@@ -75,6 +79,8 @@ class ResearchConfig:
                 "weighting_mode must be one of: equal_weight, config_weight, "
                 "ic_weight_train_only, rankic_weight_train_only."
             )
+        if self.model_type not in {"ridge", "linear"}:
+            raise ValueError("model_type must be one of: ridge, linear.")
         if self.quantiles < 2:
             raise ValueError("quantiles must be at least 2.")
         if self.validation_splits < 0:

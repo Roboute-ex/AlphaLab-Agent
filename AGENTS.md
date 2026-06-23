@@ -1,6 +1,6 @@
 # AGENTS.md
 
-给后续 coding agent 的协作规则。AlphaLab Agent 当前是 `v0.7` Research Validity & Engineering Hardening。
+给后续 coding agent 的协作规则。AlphaLab Agent 当前是 `v0.8` Real Data Research Adapter + Data Quality + Supervised Factor Model。
 
 ## 硬性边界
 
@@ -19,13 +19,18 @@
 - 新功能必须有 pytest。
 - 不要只展示收益率，必须展示 benchmark、风险、成本、Reviewer、robustness。
 
-## v0.7 规则
+## v0.7 / v0.8 规则
 
 - 回测默认不能直接依赖 forward_return label 作为主收益。
 - forward_return label 只能用于 IC / RankIC、quantile analysis、factor diagnostics 等分析。
 - 新增研究功能必须有 benchmark / risk / cost / reviewer。
 - 任何 train/test 或 walk-forward 逻辑必须避免 test leakage。
 - train-only weighting 只能在 train window 学权重，在 test window 冻结使用。
+- 真实数据入口必须 disabled-by-default，不能默认联网下载数据。
+- 数据质量检查必须先于研究结论，并进入 report / Reviewer / manifest。
+- 训练模型必须严格 train-only；时间序列不能随机切分。
+- 不允许 test leakage，不允许用 test label 训练模型。
+- 不允许把 supervised model 结果包装成投资建议或可实盘预测能力。
 - CI 必须覆盖 core deterministic path。
 - 自动生成的 artifacts 不应进入 staged files。
 
@@ -34,12 +39,15 @@
 ```text
 synthetic market data
 -> panel builder
+-> data quality
 -> factor calculation
 -> forward return label
 -> factor diagnostics
 -> execution-based backtest
 -> benchmark comparison
 -> walk-forward validation
+-> optional supervised factor model
+-> out-of-sample ML evaluation
 -> parameter sensitivity
 -> risk metrics
 -> reviewer checks
@@ -51,5 +59,6 @@ synthetic market data
 
 - `v0.1`: deterministic quant research core，已单独提交并打 tag。
 - `v0.2-v0.6`: 合并式升级已完成。
-- `v0.7`: execution backtest、benchmark、factor diagnostics、train-only weighting、manifest、CI，当前版本。
+- `v0.7`: execution backtest、benchmark、factor diagnostics、train-only weighting、manifest、CI。
+- `v0.8`: real data adapter hardening、data quality、sample CSV、train-only supervised model、ML OOS evaluation，当前版本。
 - 后续展示打磨另行处理。

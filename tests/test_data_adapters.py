@@ -17,14 +17,17 @@ def test_csv_adapter_normalizes_columns_and_adds_symbol():
                 "Low": [9.5, 10.2],
                 "Close": [10.4, 11.1],
                 "Volume": [1000, 1100],
+                " Market Cap ": ["1000000", "bad"],
             }
         ).to_csv(path, index=False)
 
         frame = load_csv_ohlcv(path, symbol="AAA")
 
-        assert list(frame.columns) == ["date", "symbol", "open", "high", "low", "close", "volume"]
-        assert frame.shape == (2, 7)
+        assert list(frame.columns) == ["date", "symbol", "open", "high", "low", "close", "volume", "market_cap", "data_source"]
+        assert frame.shape == (2, 9)
         assert frame["symbol"].tolist() == ["AAA", "AAA"]
+        assert frame["data_source"].tolist() == ["csv", "csv"]
+        assert frame["market_cap"].isna().sum() == 1
         assert pd.api.types.is_datetime64_any_dtype(frame["date"])
         assert (frame["high"] >= frame[["open", "close"]].max(axis=1)).all()
         assert (frame["low"] <= frame[["open", "close"]].min(axis=1)).all()

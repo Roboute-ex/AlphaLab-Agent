@@ -14,12 +14,16 @@ def test_v0_pipeline_smoke_and_reviewer_are_deterministic():
     assert first.quantile_returns.equals(second.quantile_returns)
     assert first.benchmark_comparison.comparison_summary.equals(second.benchmark_comparison.comparison_summary)
     assert first.backtest.portfolio_returns.equals(second.backtest.portfolio_returns)
+    assert first.data_quality.status == second.data_quality.status
+    assert first.supervised_model == {"enabled": False}
+    assert first.ml_oos_evaluation.empty
     assert first.report_path is None
     assert summarize_review(first.review_checks) in {"PASS", "WARN"}
     assert "not investment advice" in first.report_markdown
     for heading in [
         "## Research Hypothesis",
         "## Data Summary",
+        "## Data Quality",
         "## Factor Summary",
         "## Backtest Config",
         "## Backtest Assumptions",
@@ -30,6 +34,8 @@ def test_v0_pipeline_smoke_and_reviewer_are_deterministic():
         "## Benchmark Comparison",
         "## Walk-Forward Validation",
         "## Walk-forward Factor Weights",
+        "## Supervised Factor Model",
+        "## Out-of-sample ML Evaluation",
         "## Parameter Sensitivity",
         "## Run Manifest",
         "## Reviewer Findings",
@@ -120,6 +126,7 @@ def test_reviewer_detects_abnormal_results():
         ),
     )
     statuses = {check.name: check.status for check in checks}
+    assert statuses["supervised_model"] == "PASS"
     assert statuses["backtest_periods"] == "WARN"
     assert statuses["factor_score_coverage"] == "FAIL"
     assert statuses["drawdown_control"] == "WARN"
@@ -140,6 +147,32 @@ def test_reviewer_detects_abnormal_results():
     assert statuses["factor_top_bottom_spread"] == "WARN"
     assert statuses["factor_quantile_monotonicity"] == "WARN"
     assert statuses["factor_missing_rate"] == "WARN"
+    assert summarize_review(checks) == "FAIL"
+
+
+def test_reviewer_fails_when_data_quality_fails():
+    import pandas as pd
+
+    config = ResearchConfig(seed=23, n_days=120, n_symbols=6, top_k=3)
+    artifacts = run_v0_pipeline(config, write_report=False)
+
+    class BadQuality:
+        status = "FAIL"
+        summary = {"rows": 10, "issues": 2}
+
+    checks = run_reviewer_checks(
+        artifacts.panel,
+        artifacts.factors,
+        artifacts.backtest.portfolio_returns,
+        artifacts.metrics,
+        config,
+        data_quality=BadQuality(),
+        ml_oos_evaluation=pd.DataFrame(),
+    )
+    statuses = {check.name: check.status for check in checks}
+
+    assert statuses["data_quality"] == "FAIL"
+    assert statuses["supervised_model"] == "PASS"
     assert summarize_review(checks) == "FAIL"
 
 

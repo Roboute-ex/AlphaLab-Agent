@@ -10,14 +10,18 @@ from pathlib import Path
 
 import pandas as pd
 
-REQUIRED_OHLCV_COLUMNS = ["date", "symbol", "open", "high", "low", "close", "volume"]
+from alphalab_agent.data.schema import (
+    REQUIRED_OHLCV_COLUMNS,
+    normalize_market_data_frame,
+    select_market_data_columns,
+)
 
 
 def load_csv_ohlcv(path: str | Path, symbol: str | None = None) -> pd.DataFrame:
     """Load OHLCV data from a local CSV file."""
 
     raw = pd.read_csv(path)
-    frame = _normalize_ohlcv_columns(raw)
+    frame = normalize_market_data_frame(raw, data_source="csv", symbol=symbol)
     if "symbol" not in frame.columns:
         if not symbol:
             raise ValueError("CSV data must include a symbol column or receive an explicit symbol.")
@@ -26,7 +30,7 @@ def load_csv_ohlcv(path: str | Path, symbol: str | None = None) -> pd.DataFrame:
 
 
 def load_yfinance_ohlcv(
-    ticker: str,
+    ticker: str | list[str],
     start: str,
     end: str,
     interval: str = "1d",
@@ -41,15 +45,19 @@ def load_yfinance_ohlcv(
             '`python -m pip install -e ".[data]"` before using --data-source yfinance.'
         ) from exc
 
-    data = yf.download(ticker, start=start, end=end, interval=interval, auto_adjust=True, progress=False)
-    if data.empty:
-        raise ValueError(f"yfinance returned no rows for {ticker} from {start} to {end}.")
-    if isinstance(data.columns, pd.MultiIndex):
-        data.columns = data.columns.get_level_values(0)
-    data = data.reset_index()
-    frame = _normalize_ohlcv_columns(data)
-    frame["symbol"] = ticker
-    return _select_required_columns(frame)
+    tickers = _parse_tickers(ticker)
+    frames: list[pd.DataFrame] = []
+    for single_ticker in tickers:
+        data = yf.download(single_ticker, start=start, end=end, interval=interval, auto_adjust=True, progress=False)
+        if data.empty:
+            raise ValueError(f"yfinance returned no rows for {single_ticker} from {start} to {end}.")
+        if isinstance(data.columns, pd.MultiIndex):
+            data.columns = data.columns.get_level_values(0)
+        data = data.reset_index()
+        frame = normalize_market_data_frame(data, data_source="yfinance", symbol=single_ticker)
+        frame["symbol"] = single_ticker
+        frames.append(_select_required_columns(frame))
+    return pd.concat(frames, ignore_index=True).sort_values(["date", "symbol"], kind="mergesort").reset_index(drop=True)
 
 
 def load_market_data(
@@ -58,6 +66,7 @@ def load_market_data(
     csv_path: str | Path | None = None,
     symbol: str | None = None,
     ticker: str | None = None,
+    tickers: str | list[str] | None = None,
     start: str | None = None,
     end: str | None = None,
     interval: str = "1d",
@@ -71,29 +80,31 @@ def load_market_data(
             raise ValueError("--csv-path is required when --data-source csv is used.")
         return load_csv_ohlcv(csv_path, symbol=symbol)
     if source == "yfinance":
-        if not ticker or not start or not end:
-            raise ValueError("--ticker, --start, and --end are required when --data-source yfinance is used.")
-        return load_yfinance_ohlcv(ticker=ticker, start=start, end=end, interval=interval)
+        requested = tickers or ticker
+        if not requested or not start or not end:
+            raise ValueError(
+                "--tickers, --start-date, and --end-date are required when --data-source yfinance is used."
+            )
+        return load_yfinance_ohlcv(ticker=requested, start=start, end=end, interval=interval)
     raise ValueError(f"Unknown data source: {source}")
-
-
-def _normalize_ohlcv_columns(frame: pd.DataFrame) -> pd.DataFrame:
-    normalized = frame.copy()
-    normalized.columns = [str(column).strip().lower().replace(" ", "_") for column in normalized.columns]
-    rename_map = {
-        "datetime": "date",
-        "timestamp": "date",
-        "adj_close": "close",
-        "adjclose": "close",
-    }
-    normalized = normalized.rename(columns=rename_map)
-    return normalized
 
 
 def _select_required_columns(frame: pd.DataFrame) -> pd.DataFrame:
     missing = set(REQUIRED_OHLCV_COLUMNS).difference(frame.columns)
     if missing:
         raise ValueError(f"Market data is missing required OHLCV columns: {sorted(missing)}")
-    result = frame[REQUIRED_OHLCV_COLUMNS].copy()
-    result["date"] = pd.to_datetime(result["date"])
+    result = select_market_data_columns(frame)
+    result["date"] = pd.to_datetime(result["date"], errors="coerce")
+    result["symbol"] = result["symbol"].astype("string")
     return result.sort_values(["date", "symbol"], kind="mergesort").reset_index(drop=True)
+
+
+def _parse_tickers(ticker: str | list[str]) -> list[str]:
+    if isinstance(ticker, str):
+        tickers = [part.strip() for part in ticker.split(",")]
+    else:
+        tickers = [str(part).strip() for part in ticker]
+    tickers = [part for part in tickers if part]
+    if not tickers:
+        raise ValueError("At least one ticker is required for yfinance data.")
+    return tickers

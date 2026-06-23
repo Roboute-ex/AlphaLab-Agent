@@ -24,4 +24,6 @@ def test_streamlit_app_config_builder_is_importable_without_streamlit():
     assert config.transaction_cost_bps == 3.0
     assert config.backtest_mode == "execution"
     assert config.weighting_mode == "equal_weight"
+    assert config.enable_supervised_model is False
+    assert config.model_type == "ridge"
     assert config.output_dir == Path("artifacts")

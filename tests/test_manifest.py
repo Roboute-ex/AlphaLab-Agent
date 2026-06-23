@@ -18,14 +18,20 @@ def test_run_manifest_fields_and_gitignore_rule():
         html_report_path=Path("artifacts/report.html"),
         chart_paths={},
         benchmark_summary=artifacts.benchmark_comparison.comparison_summary,
+        data_quality=artifacts.data_quality,
+        supervised_model=artifacts.supervised_model,
+        ml_oos_evaluation=artifacts.ml_oos_evaluation,
     )
     output = Path("artifacts") / "test_run_manifest.json"
     try:
         write_run_manifest(output, manifest)
         loaded = json.loads(output.read_text(encoding="utf-8"))
         assert loaded["project_name"] == "AlphaLab Agent"
-        assert loaded["project_version"] == "0.7"
+        assert loaded["project_version"] == "0.8"
         assert loaded["data_source"] == "synthetic"
+        assert loaded["data_quality_status"] in {"PASS", "WARN", "FAIL"}
+        assert loaded["supervised_model"] == {"enabled": False}
+        assert "ml_oos_evaluation" in loaded
         assert "created_at_utc" in loaded
         assert "git_commit" in loaded
         assert loaded["artifacts"]["markdown_report"] == "artifacts/report.md"

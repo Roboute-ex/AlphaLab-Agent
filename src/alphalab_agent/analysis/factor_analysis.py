@@ -99,7 +99,7 @@ def calculate_factor_diagnostics(
     factor_cols: list[str],
     quantiles: int = 5,
 ) -> pd.DataFrame:
-    """Calculate robust factor diagnostics used by the v0.7 report and Reviewer."""
+    """Calculate robust factor diagnostics used by the report and Reviewer."""
 
     required = {"date", label_col, *factor_cols}
     missing = required.difference(research_frame.columns)
