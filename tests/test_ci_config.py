@@ -7,7 +7,9 @@ def test_github_actions_ci_runs_core_tests_without_optional_dependencies():
 
     assert "pull_request" in text
     assert 'python -m pip install -e ".[dev]"' in text
+    assert 'cache: "pip"' in text
     assert "python -m pytest -q" in text
     assert "python scripts/run_tests.py" in text
+    assert "python -m alphalab_agent.cli --version" in text
     assert "streamlit" not in text
     assert "yfinance" not in text

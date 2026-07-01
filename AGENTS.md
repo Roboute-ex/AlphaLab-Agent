@@ -1,6 +1,6 @@
 # AGENTS.md
 
-给后续 coding agent 的协作规则。AlphaLab Agent 当前是 `v0.8` Real Data Research Adapter + Data Quality + Supervised Factor Model。
+给后续 coding agent 的协作规则。AlphaLab Agent 当前是 `v0.9` Maintenance, Reproducibility and Project Governance。
 
 ## 硬性边界
 
@@ -19,7 +19,7 @@
 - 新功能必须有 pytest。
 - 不要只展示收益率，必须展示 benchmark、风险、成本、Reviewer、robustness。
 
-## v0.7 / v0.8 规则
+## v0.7 / v0.8 / v0.9 规则
 
 - 回测默认不能直接依赖 forward_return label 作为主收益。
 - forward_return label 只能用于 IC / RankIC、quantile analysis、factor diagnostics 等分析。
@@ -33,6 +33,8 @@
 - 不允许把 supervised model 结果包装成投资建议或可实盘预测能力。
 - CI 必须覆盖 core deterministic path。
 - 自动生成的 artifacts 不应进入 staged files。
+- 维护型改动应补充 CHANGELOG、release checklist、版本一致性或文档 smoke tests。
+- 不要为了消除 GitHub Actions warning 盲目切换到不稳定 action 版本。
 
 ## 当前 deterministic core
 
@@ -60,5 +62,6 @@ synthetic market data
 - `v0.1`: deterministic quant research core，已单独提交并打 tag。
 - `v0.2-v0.6`: 合并式升级已完成。
 - `v0.7`: execution backtest、benchmark、factor diagnostics、train-only weighting、manifest、CI。
-- `v0.8`: real data adapter hardening、data quality、sample CSV、train-only supervised model、ML OOS evaluation，当前版本。
+- `v0.8`: real data adapter hardening、data quality、sample CSV、train-only supervised model、ML OOS evaluation。
+- `v0.9`: CHANGELOG、maintenance docs、release checklist、version consistency tests、README command smoke tests、manifest schema stability、CI hygiene、issue / PR templates，当前版本。
 - 后续展示打磨另行处理。

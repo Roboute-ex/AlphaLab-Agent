@@ -1,10 +1,11 @@
-"""Command line interface for AlphaLab Agent v0.8."""
+"""Command line interface for AlphaLab Agent v0.9."""
 
 from __future__ import annotations
 
 import argparse
 from pathlib import Path
 
+from alphalab_agent._version import __version__
 from alphalab_agent.config import ResearchConfig, load_config
 from alphalab_agent.data import load_market_data
 from alphalab_agent.pipeline import run_v0_pipeline
@@ -13,7 +14,8 @@ from alphalab_agent.workflow import run_agent_workflow
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="AlphaLab Agent deterministic v0.8 workflow.")
+    parser = argparse.ArgumentParser(description="AlphaLab Agent deterministic v0.9 workflow.")
+    parser.add_argument("--version", action="store_true", help="Print the package version and exit.")
     parser.add_argument(
         "--demo",
         action="store_true",
@@ -73,6 +75,10 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+
+    if args.version:
+        print(f"AlphaLab Agent v{__version__}")
+        return 0
 
     if not args.demo and not args.agent_demo:
         parser.print_help()
@@ -134,12 +140,12 @@ def main(argv: list[str] | None = None) -> int:
     metrics = artifacts.metrics
 
     if workflow_artifacts is not None:
-        print("AlphaLab Agent v0.8 agent demo complete")
+        print("AlphaLab Agent v0.9 agent demo complete")
         print("Steps: goal -> ResearchPlan -> step logs -> deterministic research tools -> reviewer -> report")
         print(f"Plan: {workflow_artifacts.plan_path}")
         print(f"Step logs: {workflow_artifacts.step_log_path}")
     else:
-        print("AlphaLab Agent v0.8 demo complete")
+        print("AlphaLab Agent v0.9 demo complete")
         print(
             f"Steps: {config.data_source} data -> panel -> factors -> labels -> factor analysis -> "
             "data quality -> execution backtest -> benchmarks -> walk-forward validation -> "

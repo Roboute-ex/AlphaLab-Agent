@@ -205,7 +205,7 @@ def run_v0_pipeline(
     if write_report:
         report_path = write_markdown_report(config.output_dir / config.report_name, report_markdown)
         if config.generate_html:
-            report_html = render_html_report(report_markdown, title="AlphaLab Agent v0.8 Research Report")
+            report_html = render_html_report(report_markdown, title="AlphaLab Agent v0.9 Research Report")
             html_report_path = write_html_report(config.output_dir / config.html_report_name, report_html)
         if config.generate_charts:
             chart_path = write_equity_chart(config.output_dir, backtest.portfolio_returns)
