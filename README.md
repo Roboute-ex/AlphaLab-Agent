@@ -246,7 +246,7 @@ AlphaLab Agent/
 
 ## 风险提示
 
-- 本项目仅用于研究、教学与求职展示。
+- 本项目仅用于研究、教学展示。
 - 本项目不构成投资建议。
 - 本项目不接实盘交易。
 - 本项目不自动下单。
@@ -257,12 +257,3 @@ AlphaLab Agent/
 - 回测结果不代表未来收益，也不代表真实市场可交易性。
 - 不应在本项目中保存真实 API key。
 
-## 面试讲法
-
-- 这是一个 quant research workflow，不是金融聊天机器人。
-- `v0.9` 在 v0.8 基础上增加 CHANGELOG、维护文档、release checklist、版本一致性测试、README 命令 smoke tests、manifest schema 稳定性测试、CI hygiene 和 issue / PR templates。
-- 默认回测不再直接用 forward_return label 作为主收益来源，而是用 signal date 后的 realized return。
-- Reviewer 不只展示收益率，还展示 benchmark、风险、成本、turnover、drawdown、样本外验证、参数敏感性和因子诊断。
-- Reviewer severity 中，FAIL 保留给数据无效、无收益、无持仓或流程断裂；弱信号、跑输 benchmark、高成本和高换手属于 WARN。
-- 监督学习模型严格 train-only，不能随机切分时间序列，也不能把 test label 用于训练。
-- Agent 部分仍是 deterministic PlannerAgent，不接 LLM，不让 LLM 生成核心数值结论。
