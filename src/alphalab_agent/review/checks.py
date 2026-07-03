@@ -162,9 +162,9 @@ def _quality_check(name: str, passed: bool, message: str) -> ReviewCheck:
 
 def _scope_message(config: ResearchConfig) -> str:
     if config.data_source == "synthetic":
-        return "v0.9 uses synthetic data by default, no LLM, no external market API, and no live trading."
+        return "v0.10 uses synthetic data by default, no LLM, no external market API, and no live trading."
     return (
-        f"v0.9 data source '{config.data_source}' was explicitly selected; "
+        f"v0.10 data source '{config.data_source}' was explicitly selected; "
         "no LLM, no broker connection, and no live trading."
     )
 

@@ -27,7 +27,7 @@ def test_run_manifest_fields_and_gitignore_rule():
         write_run_manifest(output, manifest)
         loaded = json.loads(output.read_text(encoding="utf-8"))
         assert loaded["project_name"] == "AlphaLab Agent"
-        assert loaded["project_version"] == "0.9"
+        assert loaded["project_version"] == "0.10"
         assert loaded["data_source"] == "synthetic"
         assert loaded["data_quality_status"] in {"PASS", "WARN", "FAIL"}
         assert loaded["supervised_model"] == {"enabled": False}

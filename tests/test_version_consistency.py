@@ -9,7 +9,7 @@ from alphalab_agent import __version__
 from alphalab_agent.config import ResearchConfig, write_config
 
 
-EXPECTED_VERSION = "0.9"
+EXPECTED_VERSION = "0.10"
 
 
 def test_version_consistency_across_project_files():
@@ -19,11 +19,11 @@ def test_version_consistency_across_project_files():
     readme = (root / "README.md").read_text(encoding="utf-8")
     project_plan = (root / "docs" / "PROJECT_PLAN.md").read_text(encoding="utf-8")
 
-    assert re.search(r'^version = "0\.9"$', pyproject, flags=re.MULTILINE)
-    assert '__version__ = "0.9"' in package_version
+    assert re.search(r'^version = "0\.10"$', pyproject, flags=re.MULTILINE)
+    assert '__version__ = "0.10"' in package_version
     assert __version__ == EXPECTED_VERSION
-    assert "v0.9" in readme
-    assert "v0.9" in project_plan
+    assert "v0.10" in readme
+    assert "v0.10" in project_plan
 
 
 def test_cli_version_and_demo_output_use_current_version():
@@ -63,7 +63,7 @@ def test_cli_version_and_demo_output_use_current_version():
     )
 
     assert version_result.returncode == 0, version_result.stdout + version_result.stderr
-    assert version_result.stdout.strip() == "AlphaLab Agent v0.9"
+    assert version_result.stdout.strip() == "AlphaLab Agent v0.10"
     assert demo_result.returncode == 0, demo_result.stdout + demo_result.stderr
-    assert "AlphaLab Agent v0.9 demo complete" in demo_result.stdout
+    assert "AlphaLab Agent v0.10 demo complete" in demo_result.stdout
     shutil.rmtree(output_dir, ignore_errors=True)

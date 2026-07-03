@@ -2,6 +2,35 @@
 
 AlphaLab Agent 的变更记录。项目坚持默认 synthetic data、不接 LLM、不接实盘、不下单、不保存 API key。
 
+## v0.10 - Agent Design Transparency and Project Maturity
+
+### Added
+
+- Added detailed README explanation of the deterministic research workflow agent.
+- Added `docs/AGENT_DESIGN.md`.
+- Added `docs/DEMO_WALKTHROUGH.md`.
+- Added `docs/PROJECT_NOTES.md`.
+- Added tests for agent documentation and README agent sections.
+
+### Changed
+
+- Updated version references from v0.9 to v0.10.
+- Expanded README project positioning, Agent workflow, design principles, safety boundary, and project notes.
+
+### Safety Boundary
+
+- No live trading.
+- No broker API.
+- No default network access.
+- No API key storage.
+- No LLM-generated returns, risks, Reviewer conclusions, or backtest results.
+
+### Validation
+
+- `py -m pytest -q` passed.
+- `py scripts\run_tests.py` passed.
+- CLI version, default demo, agent demo, CSV sample demo, supervised model demo, Streamlit fallback, and example runner passed.
+
 ## v0.9
 
 ### Added

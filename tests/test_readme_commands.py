@@ -57,7 +57,7 @@ def test_readme_core_cli_commands_run_with_small_configs():
         for command in commands:
             result = subprocess.run(command, cwd=root, env=env, text=True, capture_output=True, check=False)
             assert result.returncode == 0, result.stdout + result.stderr
-            assert "AlphaLab Agent v0.9 demo complete" in result.stdout
+            assert "AlphaLab Agent v0.10 demo complete" in result.stdout
     finally:
         shutil.rmtree(output_root, ignore_errors=True)
 

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "alphalab-agent"
-version = "0.9"
+version = "0.10"
 description = "A deterministic local multi-factor research workflow for quant and agent internship demos."
 readme = "README.md"
 requires-python = ">=3.10"

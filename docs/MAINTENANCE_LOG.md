@@ -1,5 +1,26 @@
 # Maintenance Log
 
+## v0.10 maintenance log
+
+本轮做 v0.10，是为了让 Agent 设计更透明，让 README 更容易理解，让 demo 流程更容易复现，并沉淀项目设计记录。
+
+维护动机：
+
+- 展示持续维护，而不是只保留一次性 demo。
+- 减少 “Agent” 概念误解：这里的 Agent 是 deterministic research workflow agent，不是金融聊天机器人。
+- 增强 README 可读性，让新读者能理解 PlannerAgent、ResearchPlan、Reviewer、report 和 manifest 的关系。
+- 增强 demo reproducibility，补充 demo walkthrough。
+- 沉淀 project notes，记录技术设计、Agent 设计和后续轻量方向。
+
+保留安全边界：
+
+- 默认 synthetic data。
+- 不接 OpenAI API，不接 LLM。
+- 不接实盘交易，不自动下单。
+- 不默认联网。
+- 不保存 API key。
+- 不让 LLM 生成收益、风险、Reviewer 或回测结果。
+
 ## v0.9 maintenance update
 
 本轮选择做维护版，是为了展示 AlphaLab Agent 不是一次性 demo，而是持续维护的研究项目。

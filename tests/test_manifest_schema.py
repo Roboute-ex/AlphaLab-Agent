@@ -42,7 +42,7 @@ def test_manifest_schema_contains_required_stable_keys_when_ml_disabled():
     )
 
     assert REQUIRED_MANIFEST_KEYS.issubset(manifest)
-    assert manifest["project_version"] == "0.9"
+    assert manifest["project_version"] == "0.10"
     datetime.fromisoformat(manifest["created_at_utc"])
     assert manifest["supervised_model"] == {"enabled": False}
     assert manifest["ml_oos_evaluation"] == []

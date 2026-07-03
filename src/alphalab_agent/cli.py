@@ -1,4 +1,4 @@
-"""Command line interface for AlphaLab Agent v0.9."""
+"""Command line interface for AlphaLab Agent v0.10."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from alphalab_agent.workflow import run_agent_workflow
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="AlphaLab Agent deterministic v0.9 workflow.")
+    parser = argparse.ArgumentParser(description="AlphaLab Agent deterministic v0.10 workflow.")
     parser.add_argument("--version", action="store_true", help="Print the package version and exit.")
     parser.add_argument(
         "--demo",
@@ -140,12 +140,12 @@ def main(argv: list[str] | None = None) -> int:
     metrics = artifacts.metrics
 
     if workflow_artifacts is not None:
-        print("AlphaLab Agent v0.9 agent demo complete")
+        print("AlphaLab Agent v0.10 agent demo complete")
         print("Steps: goal -> ResearchPlan -> step logs -> deterministic research tools -> reviewer -> report")
         print(f"Plan: {workflow_artifacts.plan_path}")
         print(f"Step logs: {workflow_artifacts.step_log_path}")
     else:
-        print("AlphaLab Agent v0.9 demo complete")
+        print("AlphaLab Agent v0.10 demo complete")
         print(
             f"Steps: {config.data_source} data -> panel -> factors -> labels -> factor analysis -> "
             "data quality -> execution backtest -> benchmarks -> walk-forward validation -> "
