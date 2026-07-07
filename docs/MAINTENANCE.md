@@ -53,3 +53,13 @@ py -m alphalab_agent.cli --version
 - Node.js deprecation warning 不等于 Python 测试失败。
 - 不要为了消除 warning 盲目切换到不存在或不稳定的 action 版本。
 - 当前 CI 只安装 core dev dependencies，不安装 yfinance / streamlit optional extras。
+
+## v0.10 Maintenance Hygiene
+
+- Generated artifacts must not be committed. Keep `artifacts/.gitkeep`, but do not stage `artifacts/report.md`, `artifacts/report.html`, `artifacts/run_manifest.json`, `artifacts/research_plan.json`, `artifacts/step_logs.json`, or chart PNGs.
+- Always run `git status` before release preparation and before committing.
+- Always run `py -m pytest -q` before release.
+- Always run `py scripts\run_tests.py` before release.
+- Optional dependencies should not move into core dependencies unless a core deterministic feature truly requires them.
+- Dependabot is only an auxiliary signal for dependency updates. It does not replace local tests, manual review, or the safety boundary checks.
+- README, docs, CLI output, package version, and report version must remain consistent.

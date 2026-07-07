@@ -4,7 +4,7 @@
 
 AlphaLab Agent 是一个面向量化研究学习、Agent workflow 实践和本地可复现实验的低/中频股票多因子研究系统。
 
-当前版本：`v0.10`。本轮重点是 **Agent Design Transparency and Project Maturity**：把 Agent 设计讲清楚，让研究流程更容易复现、审计和长期维护。
+当前版本：`v0.10`。本轮重点是 **Agent Design Transparency and Maintenance Hygiene**：把 Agent 设计讲清楚，同时补齐 runbook、troubleshooting、configuration guide、artifact hygiene 和文档维护测试，让研究流程更容易复现、审计和长期维护。
 
 ## 项目简介
 
@@ -150,13 +150,19 @@ user research goal
 - CI hygiene improvements。
 - Issue / PR templates。
 
-### v0.10: agent design transparency and project maturity
+### v0.10: agent design transparency and maintenance hygiene
 
 - Expanded README explanation of deterministic Agent design。
 - Added `docs/AGENT_DESIGN.md`。
 - Added `docs/DEMO_WALKTHROUGH.md`。
 - Added `docs/PROJECT_NOTES.md`。
+- Added `docs/RUNBOOK.md`。
+- Added `docs/TROUBLESHOOTING.md`。
+- Added `docs/CONFIG_GUIDE.md`。
+- Added config examples for synthetic and CSV sample workflows。
+- Added artifact hygiene checks。
 - Added documentation tests for Agent design and project notes。
+- Added documentation maintenance tests。
 
 ## Quickstart
 
@@ -209,6 +215,8 @@ Streamlit fallback check：
 py -m alphalab_agent.app.streamlit_app
 ```
 
+For maintenance and reproducibility checks, see `docs/RUNBOOK.md`.
+
 ## Example Output
 
 ```text
@@ -231,6 +239,7 @@ Run manifest: artifacts\run_manifest.json
 ```text
 AlphaLab Agent/
   .github/workflows/ci.yml
+  .github/dependabot.yml
   .github/ISSUE_TEMPLATE/
   AGENTS.md
   CHANGELOG.md
@@ -239,12 +248,17 @@ AlphaLab Agent/
   docs/
     AGENT_DESIGN.md
     DEMO_WALKTHROUGH.md
+    CONFIG_GUIDE.md
     MAINTENANCE.md
     MAINTENANCE_LOG.md
     PROJECT_NOTES.md
     PROJECT_PLAN.md
     RELEASE_CHECKLIST.md
+    RUNBOOK.md
+    TROUBLESHOOTING.md
   examples/
+    config_csv_sample.json
+    config_synthetic_minimal.json
     sample_ohlcv.csv
     run_v0_research.py
   scripts/
@@ -267,7 +281,7 @@ AlphaLab Agent/
 - Agent 负责规划、编排、记录、审查，不负责编造收益。
 - execution-based backtest 避免直接拿 forward_return label 当主收益来源。
 - Reviewer 不只看收益，还看 benchmark、风险、成本、turnover、drawdown、样本外验证、参数敏感性和因子诊断。
-- v0.10 重点是 Agent 透明性、项目成熟度、文档质量和持续维护意识。
+- v0.10 重点是 Agent 透明性、Maintenance Hygiene、配置样例、artifact hygiene、文档质量和持续维护意识。
 
 ## Artifacts
 

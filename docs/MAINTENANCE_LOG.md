@@ -4,6 +4,8 @@
 
 本轮做 v0.10，是为了让 Agent 设计更透明，让 README 更容易理解，让 demo 流程更容易复现，并沉淀项目设计记录。
 
+因为 v0.10 尚未 push、tag 或 release，本轮把 maintenance hygiene 内容合并进同一个 v0.10，而不是新增后续版本。合并后的版本名是 `v0.10 - Agent Design Transparency and Maintenance Hygiene`。
+
 维护动机：
 
 - 展示持续维护，而不是只保留一次性 demo。
@@ -11,6 +13,10 @@
 - 增强 README 可读性，让新读者能理解 PlannerAgent、ResearchPlan、Reviewer、report 和 manifest 的关系。
 - 增强 demo reproducibility，补充 demo walkthrough。
 - 沉淀 project notes，记录技术设计、Agent 设计和后续轻量方向。
+- 补充 runbook，记录标准验证命令、预期输出、release routine 和 when not to release。
+- 补充 troubleshooting guide，覆盖 pytest import、Streamlit fallback、yfinance optional、Reviewer WARN、CI、version mismatch 和 generated artifacts。
+- 补充 config guide 和示例 JSON，帮助读者理解 synthetic / CSV / supervised model / output config。
+- 补充 artifact hygiene 和 documentation maintenance tests，避免生成物误提交和文档入口漂移。
 
 保留安全边界：
 
